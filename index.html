@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1e1b4b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dumbbell Workout">
+  <title>💪 Dumbbell Workout Tracker</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding-bottom: 40px;
+      overscroll-behavior-y: none;
+    }
+    .container { max-width: 720px; margin: 0 auto; padding: 16px; }
+
+    /* Header */
+    .header {
+      text-align: center;
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+      padding: 24px 20px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+      border: 1px solid #3730a3;
+      box-shadow: 0 8px 32px rgba(30,27,75,0.4);
+    }
+    .header h1 { font-size: 22px; font-weight: 800; color: #fff; margin: 0; }
+    .header p { font-size: 13px; color: #a5b4fc; margin-top: 4px; }
+    .badges { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+    .badge {
+      padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;
+    }
+    .badge-base { background: #1e3a5f; color: #93c5fd; }
+    .badge-iso { background: #064e3b; color: #6ee7b7; }
+    .badge-sci { background: #5b21b6; color: #c4b5fd; }
+
+    /* Timer */
+    .timer-block {
+      background: linear-gradient(135deg, #1e1b4b 0%, #1e3a5f 100%);
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 16px;
+      text-align: center;
+      border: 1px solid #3730a3;
+      box-shadow: 0 8px 32px rgba(30,27,75,0.3);
+    }
+    .timer-label { font-size: 12px; color: #a5b4fc; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+    .timer-display { font-size: 42px; font-weight: 800; font-variant-numeric: tabular-nums; font-family: 'SF Mono', Monaco, monospace; color: #fff; text-shadow: 0 0 20px rgba(99,102,241,0.5); }
+    .timer-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
+    .btn {
+      border: none; padding: 10px 24px; border-radius: 12px; font-weight: 700; font-size: 14px;
+      cursor: pointer; transition: all 0.2s; touch-action: manipulation;
+    }
+    .btn:active { transform: scale(0.96); }
+    .btn-start { background: #22c55e; color: white; box-shadow: 0 4px 16px rgba(34,197,94,0.3); }
+    .btn-pause { background: #f59e0b; color: white; box-shadow: 0 4px 16px rgba(245,158,11,0.3); }
+    .btn-reset { background: #ef4444; color: white; box-shadow: 0 4px 16px rgba(239,68,68,0.3); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Stats */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;
+    }
+    .stat-card {
+      background: #1e293b; padding: 16px 10px; border-radius: 16px; text-align: center;
+      border: 1px solid #334155; box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+    .stat-value { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .stat-done { color: #60a5fa; }
+    .stat-total { color: #94a3b8; }
+    .stat-progress { color: #34d399; }
+    .stat-label { font-size: 11px; color: #64748b; margin-top: 4px; }
+
+    /* History stats extra row */
+    .history-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;
+    }
+
+    /* Superset Card */
+    .ss-card {
+      background: #1e293b; border: 2px solid #334155; border-radius: 18px;
+      overflow: hidden; margin-bottom: 12px; transition: all 0.3s;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+    .ss-card.done { border-color: #22c55e; box-shadow: 0 4px 20px rgba(34,197,94,0.15); }
+    .ss-header {
+      padding: 14px 16px; font-weight: 700; font-size: 14px;
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; user-select: none;
+    }
+    .ss-header-1 { background: linear-gradient(90deg, #1e3a5f, #1e40af); }
+    .ss-header-2 { background: linear-gradient(90deg, #1e3a5f, #1e40af); }
+    .ss-header-3 { background: linear-gradient(90deg, #5b21b6, #7c3aed); }
+    .ss-header-4 { background: linear-gradient(90deg, #1e3a5f, #1e40af); }
+    .ss-header-5 { background: linear-gradient(90deg, #1e3a5f, #1e40af); }
+    .ss-header-text { color: #fff; }
+    .ss-header-meta { font-size: 11px; color: #c7d2fe; opacity: 0.9; }
+    .ss-body { padding: 14px 16px; }
+    .ss-body.hidden { display: none; }
+
+    .exercise-pair { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+    .exercise-box {
+      flex: 1; min-width: 200px; background: #0f172a; padding: 12px; border-radius: 12px;
+      border: 1px solid #334155;
+    }
+    .exercise-name { font-weight: 700; font-size: 14px; color: #f1f5f9; }
+    .exercise-detail { font-size: 12px; color: #94a3b8; margin-top: 3px; line-height: 1.4; }
+    .exercise-weight { display: inline-block; background: #1e3a5f; color: #93c5fd; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; margin-top: 6px; }
+    .exercise-weight-iso { background: #064e3b; color: #6ee7b7; }
+
+    .science-note {
+      background: linear-gradient(90deg, #3b0764, #4c1d95); border: 1px solid #6d28d9;
+      border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 12px;
+      color: #ddd6fe; line-height: 1.5;
+    }
+
+    /* Set Buttons */
+    .set-controls { display: flex; gap: 8px; justify-content: space-between; align-items: center; }
+    .set-buttons { display: flex; gap: 8px; }
+    .set-btn {
+      width: 48px; height: 48px; border: 2px solid #475569; background: #0f172a;
+      border-radius: 14px; font-size: 16px; font-weight: 700; color: #e2e8f0;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; touch-action: manipulation;
+    }
+    .set-btn:active { transform: scale(0.92); }
+    .set-btn.done { background: #22c55e; border-color: #22c55e; color: white; box-shadow: 0 4px 16px rgba(34,197,94,0.3); }
+    .ss-status { font-size: 13px; color: #64748b; font-weight: 600; }
+    .ss-status.done { color: #34d399; }
+
+    /* Bonus */
+    .bonus-block {
+      background: linear-gradient(135deg, #431407, #7c2d12); border: 2px dashed #c2410c;
+      border-radius: 16px; padding: 16px; margin-top: 14px;
+    }
+    .bonus-title { font-weight: 700; color: #fdba74; font-size: 14px; margin-bottom: 8px; }
+    .bonus-desc { font-size: 12px; color: #fdba74; opacity: 0.8; line-height: 1.5; margin-bottom: 10px; }
+    .bonus-row {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #0f172a; padding: 12px; border-radius: 12px; border: 1px solid #7c2d12;
+    }
+    .bonus-info { flex: 1; }
+    .bonus-name { font-weight: 700; font-size: 14px; color: #fed7aa; }
+    .bonus-detail { font-size: 12px; color: #fdba74; opacity: 0.8; }
+    .bonus-btn {
+      width: 40px; height: 40px; border: 2px solid #ea580c; background: #0f172a;
+      border-radius: 10px; font-size: 14px; font-weight: 700; color: #fed7aa;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; touch-action: manipulation;
+    }
+    .bonus-btn:active { transform: scale(0.92); }
+    .bonus-btn.done { background: #f97316; border-color: #f97316; color: white; }
+
+    /* Rules */
+    .rules-block {
+      background: linear-gradient(135deg, #451a03, #78350f); border: 1px solid #b45309;
+      border-radius: 14px; padding: 16px; margin-top: 16px;
+    }
+    .rules-title { font-weight: 700; color: #fcd34d; font-size: 14px; margin-bottom: 8px; }
+    .rules-text { font-size: 12px; color: #fde68a; opacity: 0.9; line-height: 1.7; }
+
+    /* Complete */
+    .complete-block {
+      display: none; background: linear-gradient(135deg, #14532d, #166534);
+      border-radius: 20px; padding: 28px; margin-top: 16px; text-align: center;
+      border: 1px solid #22c55e; box-shadow: 0 8px 32px rgba(34,197,94,0.2);
+      animation: slideUp 0.5s ease;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .complete-emoji { font-size: 52px; margin-bottom: 8px; }
+    .complete-title { font-size: 22px; font-weight: 800; color: #fff; }
+    .complete-stats { font-size: 14px; color: #86efac; margin-top: 8px; }
+    .complete-msg { font-size: 13px; color: #bbf7d0; margin-top: 12px; opacity: 0.9; }
+
+    /* Rest Modal */
+    .rest-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(15,23,42,0.95); z-index: 1000; justify-content: center; align-items: center;
+      backdrop-filter: blur(8px);
+    }
+    .rest-card {
+      background: linear-gradient(135deg, #1e1b4b, #312e81); border-radius: 24px;
+      padding: 36px 28px; text-align: center; max-width: 320px; width: 90%;
+      border: 1px solid #4c1d95; box-shadow: 0 20px 60px rgba(91,33,182,0.4);
+    }
+    .rest-label { font-size: 14px; color: #c4b5fd; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+    .rest-timer { font-size: 64px; font-weight: 800; color: #fff; font-family: monospace; font-variant-numeric: tabular-nums; text-shadow: 0 0 30px rgba(139,92,246,0.5); }
+    .rest-unit { font-size: 14px; color: #a78bfa; margin-top: 4px; }
+    .rest-controls { display: flex; gap: 10px; justify-content: center; margin-top: 24px; }
+    .rest-btn {
+      border: none; padding: 12px 20px; border-radius: 12px; font-weight: 700; font-size: 14px;
+      cursor: pointer; transition: all 0.2s; touch-action: manipulation;
+    }
+    .rest-btn:active { transform: scale(0.95); }
+    .rest-add { background: #334155; color: #e2e8f0; }
+    .rest-skip { background: #7c3aed; color: white; box-shadow: 0 4px 16px rgba(124,58,237,0.3); }
+    .rest-hint { margin-top: 14px; font-size: 11px; color: #818cf8; opacity: 0.7; }
+
+    /* Small link button */
+    .link-btn {
+      background: transparent; border: 1px solid #475569; color: #94a3b8;
+      padding: 6px 14px; border-radius: 8px; font-size: 11px; cursor: pointer;
+      margin-top: 10px;
+    }
+    .link-btn:active { transform: scale(0.95); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+    /* Responsive */
+    @media (max-width: 400px) {
+      .timer-display { font-size: 36px; }
+      .set-btn { width: 44px; height: 44px; }
+      .exercise-pair { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>💪 Dumbbell Workout</h1>
+    <p>9 кг + 15 кг • Антагонисты • 5 суперсетов</p>
+    <div class="badges">
+      <span class="badge badge-base">15 кг — база</span>
+      <span class="badge badge-iso">9 кг — изоляция</span>
+      <span class="badge badge-sci">🔬 По науке</span>
+    </div>
+  </div>
+
+  <!-- Timer -->
+  <div class="timer-block">
+    <div class="timer-label">⏱️ Общее время</div>
+    <div class="timer-display" id="globalTimer">00:00:00</div>
+    <div class="timer-buttons">
+      <button class="btn btn-start" id="btnStart" onclick="startWorkout()">▶ Старт</button>
+      <button class="btn btn-pause" id="btnPause" onclick="pauseWorkout()" style="display:none;">⏸ Пауза</button>
+      <button class="btn btn-reset" onclick="resetWorkout()">↺ Сброс</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-value stat-done" id="statDone">0</div>
+      <div class="stat-label">Подходов сделано</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value stat-total" id="statTotal">15</div>
+      <div class="stat-label">Всего подходов</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value stat-progress" id="statProgress">0%</div>
+      <div class="stat-label">Прогресс</div>
+    </div>
+  </div>
+
+  <!-- History Stats -->
+  <div class="history-grid">
+    <div class="stat-card">
+      <div class="stat-value stat-total" id="statTotalAll">0</div>
+      <div class="stat-label">Всего тренировок</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value stat-progress" id="statTotalMonth">0</div>
+      <div class="stat-label">В этом месяце</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value stat-done" id="statBestTime">--:--</div>
+      <div class="stat-label">Лучшее время</div>
+    </div>
+  </div>
+
+  <!-- Superset 1 -->
+  <div class="ss-card" data-id="1" data-rest="180">
+    <div class="ss-header ss-header-1" onclick="toggleSuperset(1)">
+      <span class="ss-header-text">🔥 СУПЕРСЕТ 1 — Ноги + Плечи</span>
+      <span class="ss-header-meta">⏱️ 3 мин • ▼</span>
+    </div>
+    <div class="ss-body" id="ss-body-1">
+      <div class="exercise-pair">
+        <div class="exercise-box">
+          <div class="exercise-name">🦵 Приседания с гантелями</div>
+          <div class="exercise-detail">Гантели у плеч, спина прямая, колени по носкам, бедра параллельно полу</div>
+          <span class="exercise-weight">15 кг × 8–12</span>
+        </div>
+        <div class="exercise-box">
+          <div class="exercise-name">🎯 Жим гантелей стоя</div>
+          <div class="exercise-detail">Нейтральный хват, ладони на уровне ушей, не прогибай поясницу</div>
+          <span class="exercise-weight">15 кг × 8–12</span>
+        </div>
+      </div>
+      <div class="set-controls">
+        <div class="set-buttons">
+          <button class="set-btn" data-ss="1" data-set="1" onclick="toggleSet(this)">1</button>
+          <button class="set-btn" data-ss="1" data-set="2" onclick="toggleSet(this)">2</button>
+          <button class="set-btn" data-ss="1" data-set="3" onclick="toggleSet(this)">3</button>
+        </div>
+        <div class="ss-status" id="ss-status-1">0/3 подходов</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Superset 2 -->
+  <div class="ss-card" data-id="2" data-rest="180">
+    <div class="ss-header ss-header-2" onclick="toggleSuperset(2)">
+      <span class="ss-header-text">🔥 СУПЕРСЕТ 2 — Спина + Задние дельты</span>
+      <span class="ss-header-meta">⏱️ 3 мин • ▼</span>
+    </div>
+    <div class="ss-body" id="ss-body-2">
+      <div class="exercise-pair">
+        <div class="exercise-box">
+          <div class="exercise-name">🚣 Тяга в наклоне к поясу</div>
+          <div class="exercise-detail">Спина параллельна полу, локти к бокам, лопатки своди в верхней точке</div>
+          <span class="exercise-weight">15 кг × 8–12</span>
+        </div>
+        <div class="exercise-box">
+          <div class="exercise-name">🔹 Разведение в наклоне</div>
+          <div class="exercise-detail">Наклон 45°, локти чуть согнуты, буква «Т», не раскачивай корпус</div>
+          <span class="exercise-weight exercise-weight-iso">9 кг × 10–12</span>
+        </div>
+      </div>
+      <div class="set-controls">
+        <div class="set-buttons">
+          <button class="set-btn" data-ss="2" data-set="1" onclick="toggleSet(this)">1</button>
+          <button class="set-btn" data-ss="2" data-set="2" onclick="toggleSet(this)">2</button>
+          <button class="set-btn" data-ss="2" data-set="3" onclick="toggleSet(this)">3</button>
+        </div>
+        <div class="ss-status" id="ss-status-2">0/3 подходов</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Superset 3 — SCIENCE -->
+  <div class="ss-card" data-id="3" data-rest="180">
+    <div class="ss-header ss-header-3" onclick="toggleSuperset(3)">
+      <span class="ss-header-text">🔥 СУПЕРСЕТ 3 — Грудь + Трапеции (антагонисты)</span>
+      <span class="ss-header-meta">⏱️ 3 мин • ▼</span>
+    </div>
+    <div class="ss-body" id="ss-body-3">
+      <div class="science-note">
+        🔬 <strong>Научно обосновано:</strong> жим (от себя) + тяга к подбородку (к себе) — классическая антагонистическая пара. Исследования 2025 г. показывают: такие суперсеты дают больше объёма, чем традиционный подход.
+      </div>
+      <div class="exercise-pair">
+        <div class="exercise-box">
+          <div class="exercise-name">🛡️ Жим гантелей лёжа</div>
+          <div class="exercise-detail">Лопатки сведены, поясница прижата, опускай до лёгкого касания груди</div>
+          <span class="exercise-weight">15 кг × 8–12</span>
+        </div>
+        <div class="exercise-box">
+          <div class="exercise-name">⬆️ Тяга к подбородку стоя</div>
+          <div class="exercise-detail">Локти в стороны-вверх (выше кистей), гантели под подбородок, не выше</div>
+          <span class="exercise-weight">15 кг × 8–12</span>
+        </div>
+      </div>
+      <div class="set-controls">
+        <div class="set-buttons">
+          <button class="set-btn" data-ss="3" data-set="1" onclick="toggleSet(this)">1</button>
+          <button class="set-btn" data-ss="3" data-set="2" onclick="toggleSet(this)">2</button>
+          <button class="set-btn" data-ss="3" data-set="3" onclick="toggleSet(this)">3</button>
+        </div>
+        <div class="ss-status" id="ss-status-3">0/3 подходов</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Superset 4 -->
+  <div class="ss-card" data-id="4" data-rest="180">
+    <div class="ss-header ss-header-4" onclick="toggleSuperset(4)">
+      <span class="ss-header-text">🔥 СУПЕРСЕТ 4 — Ноги (унилат.) + Бицепс</span>
+      <span class="ss-header-meta">⏱️ 3 мин • ▼</span>
+    </div>
+    <div class="ss-body" id="ss-body-4">
+      <div class="exercise-pair">
+        <div class="exercise-box">
+          <div class="exercise-name">🚶 Выпады с гантелями</div>
+          <div class="exercise-detail">Шаг вперёд, заднее колено почти к полу, толкайся через переднюю пятку</div>
+          <span class="exercise-weight exercise-weight-iso">9 кг × 10–12</span>
+        </div>
+        <div class="exercise-box">
+          <div class="exercise-name">💪 Сгибание рук стоя</div>
+          <div class="exercise-detail">Локти прижаты, негатив 3–4 сек, сократи бицепс наверху на 1 сек</div>
+          <span class="exercise-weight exercise-weight-iso">9 кг × 10–12</span>
+        </div>
+      </div>
+      <div class="set-controls">
+        <div class="set-buttons">
+          <button class="set-btn" data-ss="4" data-set="1" onclick="toggleSet(this)">1</button>
+          <button class="set-btn" data-ss="4" data-set="2" onclick="toggleSet(this)">2</button>
+          <button class="set-btn" data-ss="4" data-set="3" onclick="toggleSet(this)">3</button>
+        </div>
+        <div class="ss-status" id="ss-status-4">0/3 подходов</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Superset 5 -->
+  <div class="ss-card" data-id="5" data-rest="180">
+    <div class="ss-header ss-header-5" onclick="toggleSuperset(5)">
+      <span class="ss-header-text">🔥 СУПЕРСЕТ 5 — Пресс + Икры</span>
+      <span class="ss-header-meta">⏱️ 3 мин • ▼</span>
+    </div>
+    <div class="ss-body" id="ss-body-5">
+      <div class="exercise-pair">
+        <div class="exercise-box">
+          <div class="exercise-name">🎯 Скручивания с гантелью у груди</div>
+          <div class="exercise-detail">Лопатки отрываются, поясница НЕ отрывается, руки фиксированы</div>
+          <span class="exercise-weight exercise-weight-iso">9 кг × 12–15</span>
+        </div>
+        <div class="exercise-box">
+          <div class="exercise-name">🦶 Подъёмы на носки стоя</div>
+          <div class="exercise-detail">Пятка ниже пальцев (книга/брусок), пауза 2 сек наверху, медленно вниз</div>
+          <span class="exercise-weight">15 кг × 12–15</span>
+        </div>
+      </div>
+      <div class="set-controls">
+        <div class="set-buttons">
+          <button class="set-btn" data-ss="5" data-set="1" onclick="toggleSet(this)">1</button>
+          <button class="set-btn" data-ss="5" data-set="2" onclick="toggleSet(this)">2</button>
+          <button class="set-btn" data-ss="5" data-set="3" onclick="toggleSet(this)">3</button>
+        </div>
+        <div class="ss-status" id="ss-status-5">0/3 подходов</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bonus -->
+  <div class="bonus-block">
+    <div class="bonus-title">🎁 Бонус: трицепс (опционально)</div>
+    <div class="bonus-desc">Трицепс уже косвенно работает в жиме лёжа и жиме плеч. Но если хочешь добить — добавь после СС5:</div>
+    <div class="bonus-row">
+      <div class="bonus-info">
+        <div class="bonus-name">🔺 Французский жим лёжа</div>
+        <div class="bonus-detail">9 кг × 12 повт • 2 подхода • Отдых 60 сек</div>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <button class="bonus-btn" data-bonus="1" onclick="toggleBonus(this)">1</button>
+        <button class="bonus-btn" data-bonus="2" onclick="toggleBonus(this)">2</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rules -->
+  <div class="rules-block">
+    <div class="rules-title">📝 Правила</div>
+    <div class="rules-text">
+      • Диапазон <strong>8–12 повторов</strong>. Сделал 12 чисто → усложняй (вес, пауза, негатив)<br>
+      • Темп: подъём 1–2с → пауза 1с → опускание 3–4с<br>
+      • Внутри суперсета — <strong>без паузы</strong> между упражнениями. Отдых только между суперсетами.<br>
+      • Отдых между суперсетами — <strong>3 минуты</strong> (180 сек).<br>
+      • СС3 — антагонисты: пока грудь отдыхает, работают трапеции. Это даёт больше объёма по науке.<br>
+      • Если боль в суставах — остановись.
+    </div>
+    <button class="link-btn" onclick="clearHistory()">🗑 Сбросить статистику тренировок</button>
+  </div>
+
+  <!-- Complete -->
+  <div class="complete-block" id="completeBlock">
+    <div class="complete-emoji">🎉</div>
+    <div class="complete-title">Тренировка завершена!</div>
+    <div class="complete-stats">
+      Время: <span id="finalTime">00:00:00</span> • Подходов: <span id="finalSets">0</span>
+    </div>
+    <div class="complete-msg">Отличная работа! Не забудь заминку и белок после тренировки.</div>
+  </div>
+
+</div>
+
+<!-- Rest Modal -->
+<div class="rest-overlay" id="restOverlay">
+  <div class="rest-card">
+    <div class="rest-label">⏱️ Отдых между суперсетами</div>
+    <div class="rest-timer" id="restTimer">180</div>
+    <div class="rest-unit">секунд</div>
+    <div class="rest-controls">
+      <button class="rest-btn rest-add" onclick="addRestTime(15)">+15с</button>
+      <button class="rest-btn rest-skip" onclick="skipRest()">Пропустить</button>
+    </div>
+    <div class="rest-hint">Таймер запускается автоматически после отметки подхода</div>
+  </div>
+</div>
+
+<script>
+  // === State ===
+  let workoutInterval = null;
+  let workoutSeconds = 0;
+  let isRunning = false;
+  let restInterval = null;
+  let restSeconds = 0;
+  let completedSets = new Set();
+  let completedBonus = new Set();
+
+  const TOTAL_MAIN = 15;
+  const TOTAL_BONUS = 2;
+  const STORAGE_KEY = 'dumbbell_workout_v2';
+  const WORKOUT_HISTORY_KEY = 'dumbbell_workout_history';
+
+  // === Timer ===
+  function formatTime(totalSeconds) {
+    const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+    const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+    const s = String(totalSeconds % 60).padStart(2, '0');
+    return h + ':' + m + ':' + s;
+  }
+
+  function startWorkout() {
+    if (isRunning) return;
+    isRunning = true;
+    document.getElementById('btnStart').style.display = 'none';
+    document.getElementById('btnPause').style.display = 'inline-block';
+    workoutInterval = setInterval(() => {
+      workoutSeconds++;
+      document.getElementById('globalTimer').textContent = formatTime(workoutSeconds);
+      saveState();
+    }, 1000);
+  }
+
+  function pauseWorkout() {
+    isRunning = false;
+    clearInterval(workoutInterval);
+    document.getElementById('btnStart').style.display = 'inline-block';
+    document.getElementById('btnPause').style.display = 'none';
+    saveState();
+  }
+
+  function resetWorkout() {
+    pauseWorkout();
+    workoutSeconds = 0;
+    document.getElementById('globalTimer').textContent = '00:00:00';
+    completedSets.clear();
+    completedBonus.clear();
+    document.querySelectorAll('.set-btn').forEach(btn => {
+      btn.classList.remove('done');
+      btn.textContent = btn.dataset.set;
+    });
+    document.querySelectorAll('.bonus-btn').forEach(btn => {
+      btn.classList.remove('done');
+      btn.textContent = btn.dataset.bonus;
+    });
+    document.querySelectorAll('.ss-card').forEach(card => card.classList.remove('done'));
+    document.querySelectorAll('.ss-status').forEach(el => {
+      el.textContent = '0/3 подходов';
+      el.classList.remove('done');
+    });
+    document.getElementById('completeBlock').style.display = 'none';
+    updateStats();
+    saveState();
+  }
+
+  // === Stats ===
+  function updateStats() {
+    const done = completedSets.size + completedBonus.size;
+    const total = TOTAL_MAIN + TOTAL_BONUS;
+    document.getElementById('statDone').textContent = done;
+    document.getElementById('statProgress').textContent = Math.round((done / total) * 100) + '%';
+  }
+
+  // === History Stats ===
+  function saveWorkoutToHistory() {
+    const history = JSON.parse(localStorage.getItem(WORKOUT_HISTORY_KEY) || '[]');
+    history.push({
+      date: new Date().toISOString(),
+      duration: workoutSeconds,
+      sets: TOTAL_MAIN + completedBonus.size
+    });
+    localStorage.setItem(WORKOUT_HISTORY_KEY, JSON.stringify(history));
+    updateHistoryStats();
+  }
+
+  function updateHistoryStats() {
+    const history = JSON.parse(localStorage.getItem(WORKOUT_HISTORY_KEY) || '[]');
+    document.getElementById('statTotalAll').textContent = history.length;
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thisMonth = history.filter(h => new Date(h.date) >= monthStart);
+    document.getElementById('statTotalMonth').textContent = thisMonth.length;
+
+    if (history.length > 0) {
+      const best = Math.min(...history.map(h => h.duration));
+      document.getElementById('statBestTime').textContent = formatTime(best);
+    } else {
+      document.getElementById('statBestTime').textContent = '--:--';
+    }
+  }
+
+  function clearHistory() {
+    if (!confirm('Очистить всю историю тренировок? Это необратимо.')) return;
+    localStorage.removeItem(WORKOUT_HISTORY_KEY);
+    updateHistoryStats();
+  }
+
+  // === Sets ===
+  function toggleSet(btn) {
+    const ssId = btn.dataset.ss;
+    const setNum = btn.dataset.set;
+    const key = ssId + '-' + setNum;
+
+    if (completedSets.has(key)) {
+      completedSets.delete(key);
+      btn.classList.remove('done');
+      btn.textContent = setNum;
+    } else {
+      completedSets.add(key);
+      btn.classList.add('done');
+      btn.textContent = '✓';
+      if (navigator.vibrate) navigator.vibrate(50);
+    }
+
+    let ssDone = 0;
+    for (let i = 1; i <= 3; i++) {
+      if (completedSets.has(ssId + '-' + i)) ssDone++;
+    }
+    const card = document.querySelector('.ss-card[data-id="' + ssId + '"]');
+    const statusEl = document.getElementById('ss-status-' + ssId);
+    statusEl.textContent = ssDone + '/3 подходов';
+
+    if (ssDone === 3) {
+      card.classList.add('done');
+      statusEl.classList.add('done');
+      if (parseInt(ssId) < 5) {
+        const restTime = parseInt(card.dataset.rest);
+        startRestTimer(restTime);
+      }
+    } else {
+      card.classList.remove('done');
+      statusEl.classList.remove('done');
+    }
+
+    updateStats();
+    checkComplete();
+    saveState();
+  }
+
+  function toggleBonus(btn) {
+    const bonusId = btn.dataset.bonus;
+    if (completedBonus.has(bonusId)) {
+      completedBonus.delete(bonusId);
+      btn.classList.remove('done');
+      btn.textContent = bonusId;
+    } else {
+      completedBonus.add(bonusId);
+      btn.classList.add('done');
+      btn.textContent = '✓';
+      if (navigator.vibrate) navigator.vibrate(50);
+    }
+    updateStats();
+    checkComplete();
+    saveState();
+  }
+
+  // === Complete ===
+  function checkComplete() {
+    const mainDone = completedSets.size === TOTAL_MAIN;
+    if (mainDone) {
+      saveWorkoutToHistory();
+      document.getElementById('completeBlock').style.display = 'block';
+      document.getElementById('finalTime').textContent = formatTime(workoutSeconds);
+      document.getElementById('finalSets').textContent = (TOTAL_MAIN + completedBonus.size) + '/' + (TOTAL_MAIN + TOTAL_BONUS);
+      pauseWorkout();
+      document.getElementById('completeBlock').scrollIntoView({ behavior: 'smooth' });
+      if (navigator.vibrate) navigator.vibrate([100, 100, 100, 100, 300]);
+    }
+  }
+
+  // === Rest Timer ===
+  function startRestTimer(seconds) {
+    restSeconds = seconds;
+    document.getElementById('restTimer').textContent = restSeconds;
+    document.getElementById('restOverlay').style.display = 'flex';
+    clearInterval(restInterval);
+    restInterval = setInterval(() => {
+      restSeconds--;
+      document.getElementById('restTimer').textContent = restSeconds;
+      if (restSeconds <= 0) {
+        clearInterval(restInterval);
+        document.getElementById('restOverlay').style.display = 'none';
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('⏱️ Отдых окончен!', { body: 'Время следующего суперсета!', icon: '💪' });
+        }
+      }
+    }, 1000);
+  }
+
+  function addRestTime(seconds) {
+    restSeconds += seconds;
+    document.getElementById('restTimer').textContent = restSeconds;
+  }
+
+  function skipRest() {
+    clearInterval(restInterval);
+    document.getElementById('restOverlay').style.display = 'none';
+  }
+
+  // === Toggle Superset ===
+  function toggleSuperset(id) {
+    const body = document.getElementById('ss-body-' + id);
+    body.classList.toggle('hidden');
+  }
+
+  // === Persistence ===
+  function saveState() {
+    const data = {
+      workoutSeconds: workoutSeconds,
+      isRunning: isRunning,
+      completedSets: Array.from(completedSets),
+      completedBonus: Array.from(completedBonus),
+      timestamp: Date.now()
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {}
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        updateHistoryStats();
+        return;
+      }
+      const data = JSON.parse(raw);
+      const savedDate = new Date(data.timestamp);
+      const now = new Date();
+      if (savedDate.toDateString() !== now.toDateString()) {
+        localStorage.removeItem(STORAGE_KEY);
+        updateHistoryStats();
+        return;
+      }
+      workoutSeconds = data.workoutSeconds || 0;
+      document.getElementById('globalTimer').textContent = formatTime(workoutSeconds);
+      if (data.completedSets) {
+        data.completedSets.forEach(key => completedSets.add(key));
+        document.querySelectorAll('.set-btn').forEach(btn => {
+          if (completedSets.has(btn.dataset.ss + '-' + btn.dataset.set)) {
+            btn.classList.add('done');
+            btn.textContent = '✓';
+          }
+        });
+      }
+      if (data.completedBonus) {
+        data.completedBonus.forEach(id => completedBonus.add(id));
+        document.querySelectorAll('.bonus-btn').forEach(btn => {
+          if (completedBonus.has(btn.dataset.bonus)) {
+            btn.classList.add('done');
+            btn.textContent = '✓';
+          }
+        });
+      }
+      for (let ss = 1; ss <= 5; ss++) {
+        let ssDone = 0;
+        for (let i = 1; i <= 3; i++) {
+          if (completedSets.has(ss + '-' + i)) ssDone++;
+        }
+        const card = document.querySelector('.ss-card[data-id="' + ss + '"]');
+        const statusEl = document.getElementById('ss-status-' + ss);
+        statusEl.textContent = ssDone + '/3 подходов';
+        if (ssDone === 3) {
+          card.classList.add('done');
+          statusEl.classList.add('done');
+        }
+      }
+      updateStats();
+      updateHistoryStats();
+      if (completedSets.size === TOTAL_MAIN) {
+        document.getElementById('completeBlock').style.display = 'block';
+        document.getElementById('finalTime').textContent = formatTime(workoutSeconds);
+        document.getElementById('finalSets').textContent = (TOTAL_MAIN + completedBonus.size) + '/' + (TOTAL_MAIN + TOTAL_BONUS);
+      }
+    } catch (e) {
+      updateHistoryStats();
+    }
+  }
+
+  // === Notifications ===
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  // === Init ===
+  document.addEventListener('DOMContentLoaded', () => {
+    loadState();
+  });
+
+  // === Service Worker (offline) ===
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+
+</body>
+</html>
