@@ -1,0 +1,8 @@
+{
+  "appId": "com.yourname.dumbbellworkout",
+  "appName": "Dumbbell Workout",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "https"
+  }
+}
